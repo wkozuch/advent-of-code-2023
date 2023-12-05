@@ -3,11 +3,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <StartupObject>AdventOfCode.Day4</StartupObject>
+    <StartupObject>AdventOfCode.Day5</StartupObject>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Update="Datasets\Day5.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Datasets\Day4.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
