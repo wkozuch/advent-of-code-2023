@@ -10,8 +10,8 @@ namespace AdventOfCode
     public static void Main(string[] args)
     {
       var lines = File.ReadAllLines(@"Datasets\Day18.txt");
-      Part1(lines);
-      //Part2(lines);
+      // Part1(lines);
+      Part2(lines);
     }
 
     private static void Part1(IEnumerable<string> lines)
@@ -21,27 +21,29 @@ namespace AdventOfCode
       var visited = Enumerable.Range(0, 2 * size).Select(x => new char[size * 2].Select(c => '.').ToArray()).ToArray();
       var col = 200; // 200;
       var row = 200; //  200;
-      foreach (var inst in instructions)
+      for (int i1 = 0; i1 < instructions.Count; i1++)
       {
-
+        var inst = instructions[i1];
         switch (inst)
         {
           case { Direction: Direction.L }:
           {
             for (var i = 0; i < inst.Length; i++)
             {
-              col--;
               visited[row][col] = '#';
+              if (visited[row + 1][col] == '.') visited[row + 1][col] = '*';
+              col--;
             }
-
             break;
           }
           case { Direction: Direction.R }:
           {
             for (var i = 0; i < inst.Length; i++)
             {
-              col++;
+
               visited[row][col] = '#';
+              if (visited[row - 1][col] == '.') visited[row - 1][col] = '*';
+              col++;
             }
 
             break;
@@ -50,8 +52,9 @@ namespace AdventOfCode
           {
             for (var i = 0; i < inst.Length; i++)
             {
-              row++;
               visited[row][col] = '#';
+              if (visited[row][col + 1] == '.') visited[row][col + 1] = '*';
+              row++;
             }
 
             break;
@@ -60,8 +63,10 @@ namespace AdventOfCode
           {
             for (var i = 0; i < inst.Length; i++)
             {
-              row--;
+
               visited[row][col] = '#';
+              if (visited[row][col - 1] == '.') visited[row][col - 1] = '*';
+              row--;
             }
 
             break;
@@ -80,25 +85,46 @@ namespace AdventOfCode
         var nextIndex = r.IndexOf('#', i + 1);
         while (nextIndex != -1)
         {
-          while (r[i] == '#')
+          if (visited[index][i..nextIndex].All(x => x != '*'))
           {
-            while (++i <= nextIndex)
+            while (i < nextIndex)
             {
-              visited[index][i] = '#';
+              visited[index][++i] = '#';
             }
           }
+          //else
+          //{
+          //  while (i < nextIndex)
+          //  {
+          //    if (visited[index - 1][i] == '#')
+          //    {
+          //      visited[index][i] = '#';
+          //    }
+          //    i++;
+          //  }
+          //  }
 
-          i = nextIndex; 
-          nextIndex = r.IndexOf('#', i + 1);
 
-          while (i < r.Count && nextIndex != -1 && r[i] == '.' && i < nextIndex)
-          {
-            if (visited[index - 1][i] == '#')
-            {
-              visited[index][i] = '#';
-            }
-            i++;
-          }
+          //while (r[i] == '#')
+          //{
+          //  while (++i <= nextIndex)
+          //  {
+          //    visited[index][i] = '#';
+          //  }
+          //}
+
+          //i = nextIndex; 
+          //nextIndex = r.IndexOf('#', i + 1);
+
+          //while (i < r.Count && nextIndex != -1 && r[i] == '.' && i < nextIndex)
+          //{
+          //  if (visited[index - 1][i] == '#')
+          //  {
+          //    visited[index][i] = '#';
+          //  }
+          //  i++;
+          //}
+          i = nextIndex;
           nextIndex = r.IndexOf('#', i + 1);
         }
 
@@ -115,79 +141,96 @@ namespace AdventOfCode
       DrawSurface(visited);
 
       var result = visited.Sum(l => l.Count(x => x == '#'));
-      Console.WriteLine(result); // 54146 (too high)
+      Console.WriteLine(result); // 45159
 
     }
 
     private static void Part2(IEnumerable<string> lines)
     {
+      var instructions = lines.Select(x => x.Split(" ")[2]).
+        Select(x => new Instruction(Convert.ToInt32(x[2..7], 16), CharToDirection(x), x))
+        .ToList();
+      var size = 250; //  250;
+      var visited = new List<Position>();
+      long col = 0; // 200;
+      long row = 0; //  200;
+      for (int i1 = 0; i1 < instructions.Count; i1++)
+      {
+        var inst = instructions[i1];
+        switch (inst)
+        {
+          case { Direction: Direction.L }:
+          {
+            visited.Add(new Position(row, col, '#'));
+            visited.Add(new Position(row, col - inst.Length, '#'));
+            visited.Add(new Position(row + 1, col, '*'));
+            visited.Add(new Position(row + 1, col - inst.Length, '*'));
+            col -= inst.Length;
+            break;
+          }
+          case { Direction: Direction.R }:
+          {
+            visited.Add(new Position(row, col, '#'));
+            visited.Add(new Position(row, col + inst.Length, '#'));
+            visited.Add(new Position(row - 1, col, '*'));
+            visited.Add(new Position(row - 1, col + inst.Length, '*'));
+            col += inst.Length;
+            break;
+          }
+          case { Direction: Direction.D }:
+          {
+            visited.Add(new Position(row, col, '#'));
+            visited.Add(new Position(row + inst.Length, col, '#'));
+            visited.Add(new Position(row, col + 1, '*'));
+            visited.Add(new Position(row + inst.Length, col + 1, '*'));
+            row += inst.Length;
+            break;
+          }
+          case { Direction: Direction.U }:
+          {
+            visited.Add(new Position(row, col, '#'));
+            visited.Add(new Position(row - inst.Length, col, '#'));
+            visited.Add(new Position(row, col - 1, '*'));
+            visited.Add(new Position(row - inst.Length, col - 1, '*'));
+            row -= inst.Length;
+            break;
+          }
+        }
+      }
+
+      var rows = visited.Select(x => x.Row).OrderBy(x => x).ToList();
+      visited = visited.OrderBy(x => x.Row).ThenBy(x => x.Column).ToList();
+      long result = 0;
+      long prevRow = 0;
+      long delta = 0;
+      foreach (var r in rows)
+      {
+        prevRow = r - prevRow;
+        var positions = visited.Where(x => x.Row == r).ToList();
+        //if (visited[index].All(x => x != '#')) continue;
+        var i = 1;
+        var p1 = positions.First();
+        var p2 = positions.Skip(i).FirstOrDefault();
+        while (p2 != null)
+        {
+          if (p1.Char != '*' && p2.Char != '*')
+          {
+            delta += (p2.Column - p1.Column);
+          }
+          p1 = p2;
+          p2 = positions.Skip(++i).FirstOrDefault();
+        }
+        result += delta * prevRow;
+      }
+      Console.WriteLine(result); // 45159
 
     }
 
-    //private static bool IsInside(Position p, char[][] surface)
-    //{
-    //  //return -1 < p.r && p.r < surface.Length && -1 < p.c && p.c < surface[0].Length;
-    //}
-
-    //private static Position? GetNextPosition(Position p, IReadOnlyList<char[]> surface)
-    //{
-    //  return p.Direction switch
-    //  {
-    //    Direction.Right => surface[0].Length <= p.c + 1 ? null : p with { c = p.c + 1 },
-    //    Direction.Left => p.c - 1 < 0 ? null : p with { c = p.c - 1 },
-    //    Direction.Down => surface.Count <= p.r + 1 ? null : p with { r = p.r + 1 },
-    //    Direction.Up => p.r - 1 < 0 ? null : p with { r = p.r - 1 },
-    //    _ => null
-    //  };
-    //}
-
-    //private static void Dig(ref char[][] surface, ref int rix, ref int cix, Instruction current, Instruction next)
-    //{
-    //  var tuple = Tuple.Create(current, next);
-    //  if (current.Direction == next.Direction) throw new ArgumentOutOfRangeException();
-
-    //  switch (tuple)
-    //  {
-    //    case { Item1.Direction: Direction.D, Item2.Direction: Direction.R }:
-    //    for (var i = 0; i < tuple.Item1.Length; i++)
-    //    {
-    //      for (var j = 0; j < tuple.Item2.Length; j++)
-    //      {
-    //        surface[rix++][cix++] = '#';
-    //      }
-    //    }
-    //    break;
-    //    case { Item1.Direction: Direction.L, Item2.Direction: Direction.U }:
-    //    for (var i = 0; i < tuple.Item1.Length; i++)
-    //    {
-    //      for (var j = 0; j < tuple.Item2.Length; j++)
-    //      {
-    //        surface[rix--][cix--] = '#';
-    //      }
-    //    }
-    //    break;
-    //    case { Item1.Direction: Direction.U, Item2.Direction: Direction.R }:
-    //    for (var i = 0; i < tuple.Item1.Length; i++)
-    //    {
-    //      for (var j = 0; j < tuple.Item2.Length; j++)
-    //      {
-    //        surface[rix--][cix++] = '#';
-    //      }
-    //    }
-    //    break;
-    //    case { Item1.Direction: Direction.U, Item2.Direction: Direction.R }:
-    //    for (var i = 0; i < tuple.Item1.Length; i++)
-    //    {
-    //      for (var j = 0; j < tuple.Item2.Length; j++)
-    //      {
-    //        surface[rix--][cix++] = '#';
-    //      }
-    //    }
-    //    break;
-    //  }
-
-
-    //}
+    private static Direction CharToDirection(string x)
+    {
+      var values = Enum.GetValues(typeof(Direction)).Cast<Direction>();
+      return values.FirstOrDefault(e => (int)e == x[7] - '0');
+    }
 
     private static void DrawSurface(char[][] surface)
     {
@@ -202,10 +245,12 @@ namespace AdventOfCode
 
     public enum Direction
     {
-      U,
-      D,
-      L,
-      R
+      R = 0,
+      D = 1,
+      L = 2,
+      U = 3
     }
+
+    public record Position(long Row, long Column, char Char);
   }
 }
